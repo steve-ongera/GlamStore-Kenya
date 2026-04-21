@@ -4,14 +4,14 @@ import { useAuth } from '../context/AuthContext'
 import { useCart } from '../context/CartContext'
 
 const CATEGORIES = [
-  { name: 'Perfumes', slug: 'perfumes', icon: '🌸' },
-  { name: 'Human Hair', slug: 'hair', icon: '💇' },
-  { name: 'Waxing & Beauty', slug: 'beauty', icon: '✨' },
-  { name: 'Microblading', slug: 'microblading', icon: '💄' },
-  { name: "Women's Clothes", slug: 'womens-clothing', icon: '👗' },
-  { name: "Men's Fashion", slug: 'mens-clothing', icon: '👔' },
-  { name: "Girls Dresses", slug: 'girls-dresses', icon: '🎀' },
-  { name: 'Stick-ons', slug: 'stickons', icon: '💅' },
+  { name: 'Perfumes', slug: 'perfumes', icon: 'bi-droplet' },
+  { name: 'Human Hair', slug: 'hair', icon: 'bi-scissors' },
+  { name: 'Waxing & Beauty', slug: 'beauty', icon: 'bi-stars' },
+  { name: 'Microblading', slug: 'microblading', icon: '' },
+  { name: "Women's Clothes", slug: 'womens-clothing', icon: '' },
+  { name: "Men's Fashion", slug: 'mens-clothing', icon: '' },
+  { name: 'Girls Dresses', slug: 'girls-dresses', icon: '' },
+  { name: 'Stick-ons', slug: 'stickons', icon: 'bi-palette' },
 ]
 
 export default function Navbar({ onMenuOpen }) {
@@ -32,16 +32,16 @@ export default function Navbar({ onMenuOpen }) {
       {/* Topbar */}
       <div className="topbar">
         <div className="topbar-marquee">
-          <span>🚚 FREE delivery on orders above Ksh 2,000</span>
-          <span>🌸 New Arrivals Every Week!</span>
-          <span>💄 Authentic Products Only</span>
-          <span>📦 Pick up in your county</span>
-          <span>🔒 Secure Checkout</span>
-          <span>🚚 FREE delivery on orders above Ksh 2,000</span>
-          <span>🌸 New Arrivals Every Week!</span>
-          <span>💄 Authentic Products Only</span>
-          <span>📦 Pick up in your county</span>
-          <span>🔒 Secure Checkout</span>
+          <span>FREE delivery on orders above Ksh 2,000</span>
+          <span>New Arrivals Every Week!</span>
+          <span>Authentic Products Only</span>
+          <span>Pick up in your county</span>
+          <span>Secure Checkout</span>
+          <span>FREE delivery on orders above Ksh 2,000</span>
+          <span>New Arrivals Every Week!</span>
+          <span>Authentic Products Only</span>
+          <span>Pick up in your county</span>
+          <span>Secure Checkout</span>
         </div>
         <div className="topbar-links">
           <Link to="/orders">Track Order</Link>
@@ -85,6 +85,10 @@ export default function Navbar({ onMenuOpen }) {
 
           {/* Actions */}
           <div className="gs-nav-actions">
+            <Link to="/" className="gs-nav-btn">
+              <i className="bi bi-house"></i>
+              <span>Home</span>
+            </Link>
             {user ? (
               <Link to="/profile" className="gs-nav-btn">
                 <i className="bi bi-person-circle"></i>
@@ -141,7 +145,7 @@ export default function Navbar({ onMenuOpen }) {
               to={`/category/${cat.slug}`}
               className="gs-catbar-item"
             >
-              <span className="cat-icon">{cat.icon}</span>
+              {cat.icon && <i className={`bi ${cat.icon}`}></i>}
               {cat.name}
             </Link>
           ))}
