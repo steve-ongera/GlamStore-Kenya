@@ -133,16 +133,26 @@ class OrderViewSet(viewsets.ModelViewSet):
     @transaction.atomic
     def create(self, request):
         serializer = CreateOrderSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
         data = serializer.validated_data
 
-        # Get cart
-        try:
-            cart = Cart.objects.get(user=request.user)
-        except Cart.DoesNotExist:
-            return Response({'error': 'Your cart is empty'}, status=status.HTTP_400_BAD_REQUEST)
+        # Get cart — check both user cart and session cart
+        cart = Cart.objects.filter(user=request.user).first()
 
-        if not cart.items.exists():
+        # If no user cart, try to find and claim a session cart
+        if not cart:
+            session_key = request.session.session_key
+            if session_key:
+                session_cart = Cart.objects.filter(session_key=session_key).first()
+                if session_cart and session_cart.items.exists():
+                    session_cart.user = request.user
+                    session_cart.session_key = None
+                    session_cart.save()
+                    cart = session_cart
+
+        if not cart or not cart.items.exists():
             return Response({'error': 'Your cart is empty'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Calculate delivery fee
@@ -151,29 +161,41 @@ class OrderViewSet(viewsets.ModelViewSet):
         delivery_county = None
 
         if data['delivery_method'] == 'pickup':
-            pickup_station = PickupStation.objects.get(id=data['pickup_station_id'])
+            try:
+                pickup_station = PickupStation.objects.get(id=data['pickup_station_id'])
+            except PickupStation.DoesNotExist:
+                return Response({'error': 'Pickup station not found'}, status=status.HTTP_404_NOT_FOUND)
             delivery_fee = float(pickup_station.pickup_fee)
         else:
-            delivery_county = County.objects.get(id=data['delivery_county_id'])
+            try:
+                delivery_county = County.objects.get(id=data['delivery_county_id'])
+            except County.DoesNotExist:
+                return Response({'error': 'County not found'}, status=status.HTTP_404_NOT_FOUND)
             delivery_fee = float(delivery_county.delivery_fee)
 
         subtotal = float(cart.total)
 
         # Apply coupon
         discount = 0
-        if data.get('coupon_code'):
+        coupon_code = data.get('coupon_code', '').strip()
+        if coupon_code:
             from django.utils import timezone
             try:
-                coupon = Coupon.objects.get(code__iexact=data['coupon_code'], is_active=True,
-                                            valid_from__lte=timezone.now(), valid_until__gte=timezone.now())
-                if coupon.discount_type == 'percent':
-                    discount = (coupon.discount_value / 100) * subtotal
-                else:
-                    discount = float(coupon.discount_value)
-                coupon.times_used += 1
-                coupon.save()
+                coupon = Coupon.objects.get(
+                    code__iexact=coupon_code,
+                    is_active=True,
+                    valid_from__lte=timezone.now(),
+                    valid_until__gte=timezone.now()
+                )
+                if not coupon.usage_limit or coupon.times_used < coupon.usage_limit:
+                    if coupon.discount_type == 'percent':
+                        discount = (float(coupon.discount_value) / 100) * subtotal
+                    else:
+                        discount = float(coupon.discount_value)
+                    coupon.times_used += 1
+                    coupon.save()
             except Coupon.DoesNotExist:
-                pass
+                pass  # Silently ignore invalid coupon at order creation
 
         total = subtotal + delivery_fee - discount
 
@@ -196,19 +218,21 @@ class OrderViewSet(viewsets.ModelViewSet):
             notes=data.get('notes', ''),
         )
 
-        # Create order items
-        for item in cart.items.all():
+        # Create order items and deduct stock
+        for item in cart.items.select_related('product', 'variant').all():
             OrderItem.objects.create(
                 order=order,
                 product=item.product,
                 product_name=item.product.name,
                 product_slug=item.product.slug,
-                variant_info=f'{item.variant.get_variant_type_display()}: {item.variant.value}' if item.variant else '',
+                variant_info=(
+                    f'{item.variant.get_variant_type_display()}: {item.variant.value}'
+                    if item.variant else ''
+                ),
                 quantity=item.quantity,
                 unit_price=item.unit_price,
                 subtotal=item.subtotal,
             )
-            # Deduct stock
             item.product.stock -= item.quantity
             item.product.save(update_fields=['stock'])
 

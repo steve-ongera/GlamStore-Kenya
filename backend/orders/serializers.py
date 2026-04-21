@@ -53,7 +53,7 @@ class OrderSerializer(serializers.ModelSerializer):
 
 
 class CreateOrderSerializer(serializers.Serializer):
-    delivery_method = serializers.ChoiceField(choices=['pickup', 'delivery'])
+    delivery_method = serializers.ChoiceField(choices=Order.DELIVERY_METHODS)
     pickup_station_id = serializers.IntegerField(required=False, allow_null=True)
     delivery_street = serializers.CharField(required=False, allow_blank=True)
     delivery_town = serializers.CharField(required=False, allow_blank=True)
@@ -61,7 +61,7 @@ class CreateOrderSerializer(serializers.Serializer):
     customer_name = serializers.CharField()
     customer_email = serializers.EmailField()
     customer_phone = serializers.CharField()
-    payment_method = serializers.ChoiceField(choices=['mpesa', 'card', 'cod', 'bank'])
+    payment_method = serializers.ChoiceField(choices=Order.PAYMENT_METHODS)
     coupon_code = serializers.CharField(required=False, allow_blank=True)
     notes = serializers.CharField(required=False, allow_blank=True)
 
