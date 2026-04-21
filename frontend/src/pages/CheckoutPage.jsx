@@ -17,6 +17,7 @@ export default function CheckoutPage() {
   const [counties, setCounties] = useState([])
   const [selectedCounty, setSelectedCounty] = useState(null)
   const [stations, setStations] = useState([])
+  const [loadingStations, setLoadingStations] = useState(false)
   const [loading, setLoading] = useState(false)
   const [couponCode, setCouponCode] = useState('')
   const [couponDiscount, setCouponDiscount] = useState(0)
@@ -28,22 +29,35 @@ export default function CheckoutPage() {
     delivery_street: '',
     delivery_town: '',
     delivery_county_id: null,
-    customer_name: user ? `${user.first_name} ${user.last_name}` : '',
+    customer_name: user ? `${user.first_name} ${user.last_name}`.trim() : '',
     customer_email: user?.email || '',
     customer_phone: user?.phone || '',
     payment_method: 'mpesa',
     notes: '',
   })
 
+  // Fetch all counties on mount — pagination disabled on backend so we get all 47
   useEffect(() => {
-    api.get('/pickups/counties/').then(res => setCounties(res.data.results || res.data))
+    api.get('/pickups/counties/').then(res => {
+      const data = res.data
+      setCounties(Array.isArray(data) ? data : (data.results || []))
+    })
   }, [])
 
+  // Fetch stations when a county is selected — filter by county_id
   useEffect(() => {
-    if (selectedCounty) {
-      api.get(`/pickups/stations/?county__slug=${selectedCounty.slug}`)
-        .then(res => setStations(res.data.results || res.data))
+    if (!selectedCounty) {
+      setStations([])
+      return
     }
+    setLoadingStations(true)
+    api.get(`/pickups/stations/?county_id=${selectedCounty.id}`)
+      .then(res => {
+        const data = res.data
+        setStations(Array.isArray(data) ? data : (data.results || []))
+      })
+      .catch(() => setStations([]))
+      .finally(() => setLoadingStations(false))
   }, [selectedCounty])
 
   const handleChange = (key, val) => setForm(p => ({ ...p, [key]: val }))
@@ -70,7 +84,7 @@ export default function CheckoutPage() {
     try {
       const res = await api.post('/orders/cart/validate_coupon/', { code: couponCode })
       setCouponDiscount(res.data.discount)
-      toast(`Coupon applied! You save ${formatPrice(res.data.discount)} 🎉`)
+      toast(`Coupon applied! You save ${formatPrice(res.data.discount)}`)
     } catch (err) {
       toast(getErrorMessage(err), 'error')
     }
@@ -84,7 +98,7 @@ export default function CheckoutPage() {
     if (form.delivery_method === 'delivery' && !form.delivery_county_id) {
       toast('Please select a county for delivery', 'error'); return false
     }
-    if (!form.customer_name || !form.customer_email || !form.customer_phone) {
+    if (!form.customer_name.trim() || !form.customer_email.trim() || !form.customer_phone.trim()) {
       toast('Please fill in your contact details', 'error'); return false
     }
     return true
@@ -94,9 +108,9 @@ export default function CheckoutPage() {
     setLoading(true)
     try {
       const payload = { ...form, coupon_code: couponCode }
-      const res = await api.post('/orders/', payload)
+      await api.post('/orders/', payload)
       await clearCart()
-      toast('Order placed successfully! 🎉')
+      toast('Order placed successfully!')
       navigate('/orders')
     } catch (err) {
       toast(getErrorMessage(err), 'error')
@@ -111,7 +125,7 @@ export default function CheckoutPage() {
       </h1>
 
       {/* Step indicator */}
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem', gap: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '2rem' }}>
         {STEPS.map((s, i) => (
           <React.Fragment key={s}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -125,10 +139,18 @@ export default function CheckoutPage() {
               }}>
                 {i < step ? <i className="bi bi-check-lg"></i> : i + 1}
               </div>
-              <span style={{ fontSize: '0.85rem', fontWeight: i === step ? 800 : 500, color: i === step ? 'var(--primary)' : 'var(--text-muted)' }}>{s}</span>
+              <span style={{
+                fontSize: '0.85rem',
+                fontWeight: i === step ? 800 : 500,
+                color: i === step ? 'var(--primary)' : 'var(--text-muted)',
+              }}>{s}</span>
             </div>
             {i < STEPS.length - 1 && (
-              <div style={{ flex: 1, height: 2, background: i < step ? 'var(--primary)' : 'var(--border)', margin: '0 12px', transition: 'background 0.3s' }}></div>
+              <div style={{
+                flex: 1, height: 2,
+                background: i < step ? 'var(--primary)' : 'var(--border)',
+                margin: '0 12px', transition: 'background 0.3s',
+              }}></div>
             )}
           </React.Fragment>
         ))}
@@ -142,30 +164,36 @@ export default function CheckoutPage() {
             <div>
               {/* Contact info */}
               <div style={{ background: 'var(--white)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius)', padding: '1.25rem', marginBottom: '1rem' }}>
-                <h5 style={{ fontWeight: 800, marginBottom: '1rem' }}>📞 Contact Information</h5>
+                <h5 style={{ fontWeight: 800, marginBottom: '1rem' }}>Contact Information</h5>
                 <div className="row g-3">
                   <div className="col-md-6">
                     <label className="gs-label">Full Name</label>
-                    <input className="gs-input" value={form.customer_name} onChange={e => handleChange('customer_name', e.target.value)} placeholder="Full name" />
+                    <input className="gs-input" value={form.customer_name}
+                      onChange={e => handleChange('customer_name', e.target.value)}
+                      placeholder="Full name" />
                   </div>
                   <div className="col-md-6">
                     <label className="gs-label">Phone Number</label>
-                    <input className="gs-input" value={form.customer_phone} onChange={e => handleChange('customer_phone', e.target.value)} placeholder="+254 7XX XXX XXX" />
+                    <input className="gs-input" value={form.customer_phone}
+                      onChange={e => handleChange('customer_phone', e.target.value)}
+                      placeholder="+254 7XX XXX XXX" />
                   </div>
                   <div className="col-12">
                     <label className="gs-label">Email Address</label>
-                    <input className="gs-input" type="email" value={form.customer_email} onChange={e => handleChange('customer_email', e.target.value)} placeholder="email@example.com" />
+                    <input className="gs-input" type="email" value={form.customer_email}
+                      onChange={e => handleChange('customer_email', e.target.value)}
+                      placeholder="email@example.com" />
                   </div>
                 </div>
               </div>
 
               {/* Delivery method */}
               <div style={{ background: 'var(--white)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius)', padding: '1.25rem', marginBottom: '1rem' }}>
-                <h5 style={{ fontWeight: 800, marginBottom: '1rem' }}>🚚 Delivery Method</h5>
+                <h5 style={{ fontWeight: 800, marginBottom: '1rem' }}>Delivery Method</h5>
                 <div className="d-flex gap-3 mb-3 flex-wrap">
                   {[
-                    { value: 'pickup', label: '🏪 Pickup Station', sub: 'Pick up at a station near you' },
-                    { value: 'delivery', label: '🚚 Door Delivery', sub: 'Delivered to your address' },
+                    { value: 'pickup', label: 'Pickup Station', icon: 'bi-shop', sub: 'Pick up at a station near you' },
+                    { value: 'delivery', label: 'Door Delivery', icon: 'bi-truck', sub: 'Delivered to your address' },
                   ].map(opt => (
                     <div key={opt.value}
                       onClick={() => handleChange('delivery_method', opt.value)}
@@ -176,7 +204,9 @@ export default function CheckoutPage() {
                         background: form.delivery_method === opt.value ? 'var(--primary-xlight)' : 'var(--white)',
                         cursor: 'pointer', transition: 'all 0.2s',
                       }}>
-                      <div style={{ fontWeight: 800, fontSize: '0.9rem', color: form.delivery_method === opt.value ? 'var(--primary)' : 'var(--text)' }}>{opt.label}</div>
+                      <div style={{ fontWeight: 800, fontSize: '0.9rem', color: form.delivery_method === opt.value ? 'var(--primary)' : 'var(--text)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <i className={`bi ${opt.icon}`}></i> {opt.label}
+                      </div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 4 }}>{opt.sub}</div>
                     </div>
                   ))}
@@ -184,11 +214,12 @@ export default function CheckoutPage() {
 
                 {/* Pickup station selector */}
                 {form.delivery_method === 'pickup' && (
-                  <div className="gs-pickup-map">
+                  <div>
                     <h6 style={{ fontWeight: 800, marginBottom: '0.75rem', fontSize: '0.9rem' }}>Select Pickup Station</h6>
-                    <div className="gs-county-select">
-                      <label className="gs-label">Select County</label>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <label className="gs-label">Select County ({counties.length} available)</label>
                       <select className="gs-input"
+                        value={selectedCounty?.id || ''}
                         onChange={e => {
                           const co = counties.find(c => c.id === Number(e.target.value))
                           setSelectedCounty(co || null)
@@ -200,16 +231,25 @@ export default function CheckoutPage() {
                         ))}
                       </select>
                     </div>
-                    {stations.length > 0 && (
+
+                    {loadingStations && (
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
+                        <i className="bi bi-arrow-repeat"></i> Loading stations...
+                      </p>
+                    )}
+
+                    {!loadingStations && stations.length > 0 && (
                       <div>
-                        <label className="gs-label">Select Station</label>
+                        <label className="gs-label">Select Station ({stations.length} available)</label>
                         <div className="gs-station-list">
                           {stations.map(st => (
                             <div key={st.id}
                               className={`gs-station-card ${form.pickup_station_id === st.id ? 'selected' : ''}`}
                               onClick={() => handleChange('pickup_station_id', st.id)}>
                               <div className="station-name">{st.name}</div>
-                              <div className="station-addr"><i className="bi bi-geo-alt"></i> {st.address}, {st.town}</div>
+                              <div className="station-addr">
+                                <i className="bi bi-geo-alt"></i> {st.address}, {st.town}
+                              </div>
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
                                 <div className="station-fee">Pickup Fee: {formatPrice(st.pickup_fee)}</div>
                                 <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{st.operating_hours}</div>
@@ -219,8 +259,11 @@ export default function CheckoutPage() {
                         </div>
                       </div>
                     )}
-                    {selectedCounty && stations.length === 0 && (
-                      <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.5rem' }}>No pickup stations in this county yet.</p>
+
+                    {!loadingStations && selectedCounty && stations.length === 0 && (
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '0.5rem' }}>
+                        <i className="bi bi-info-circle"></i> No pickup stations in {selectedCounty.name} yet.
+                      </p>
                     )}
                   </div>
                 )}
@@ -230,19 +273,24 @@ export default function CheckoutPage() {
                   <div className="row g-3 mt-1">
                     <div className="col-12">
                       <label className="gs-label">Street Address</label>
-                      <input className="gs-input" value={form.delivery_street} onChange={e => handleChange('delivery_street', e.target.value)} placeholder="Street / Building name" />
+                      <input className="gs-input" value={form.delivery_street}
+                        onChange={e => handleChange('delivery_street', e.target.value)}
+                        placeholder="Street / Building name" />
                     </div>
                     <div className="col-md-6">
                       <label className="gs-label">Town / Area</label>
-                      <input className="gs-input" value={form.delivery_town} onChange={e => handleChange('delivery_town', e.target.value)} placeholder="e.g. Westlands" />
+                      <input className="gs-input" value={form.delivery_town}
+                        onChange={e => handleChange('delivery_town', e.target.value)}
+                        placeholder="e.g. Westlands" />
                     </div>
                     <div className="col-md-6">
-                      <label className="gs-label">County</label>
+                      <label className="gs-label">County ({counties.length} available)</label>
                       <select className="gs-input"
+                        value={form.delivery_county_id || ''}
                         onChange={e => handleChange('delivery_county_id', Number(e.target.value))}>
                         <option value="">-- Select County --</option>
                         {counties.map(co => (
-                          <option key={co.id} value={co.id}>{co.name} — Ksh {co.delivery_fee}</option>
+                          <option key={co.id} value={co.id}>{co.name} — {formatPrice(co.delivery_fee)}</option>
                         ))}
                       </select>
                     </div>
@@ -252,7 +300,9 @@ export default function CheckoutPage() {
 
               <div style={{ background: 'var(--white)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius)', padding: '1.25rem', marginBottom: '1rem' }}>
                 <label className="gs-label">Order Notes (optional)</label>
-                <textarea className="gs-input" rows={3} value={form.notes} onChange={e => handleChange('notes', e.target.value)} placeholder="Special instructions..."></textarea>
+                <textarea className="gs-input" rows={3} value={form.notes}
+                  onChange={e => handleChange('notes', e.target.value)}
+                  placeholder="Special instructions..."></textarea>
               </div>
 
               <button className="btn-gs-primary" style={{ padding: '12px 32px', fontSize: '1rem' }}
@@ -266,12 +316,12 @@ export default function CheckoutPage() {
           {step === 1 && (
             <div>
               <div style={{ background: 'var(--white)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius)', padding: '1.25rem' }}>
-                <h5 style={{ fontWeight: 800, marginBottom: '1rem' }}>💳 Payment Method</h5>
+                <h5 style={{ fontWeight: 800, marginBottom: '1rem' }}>Payment Method</h5>
                 {[
-                  { value: 'mpesa', label: 'M-Pesa', icon: '📱', desc: 'Pay via M-Pesa Paybill or Till number' },
-                  { value: 'card', label: 'Credit/Debit Card', icon: '💳', desc: 'Visa, Mastercard accepted' },
-                  { value: 'cod', label: 'Cash on Delivery', icon: '💵', desc: 'Pay when you receive your order' },
-                  { value: 'bank', label: 'Bank Transfer', icon: '🏦', desc: 'Direct bank transfer' },
+                  { value: 'mpesa', label: 'M-Pesa', icon: 'bi-phone', desc: 'Pay via M-Pesa Paybill or Till number' },
+                  { value: 'card', label: 'Credit / Debit Card', icon: 'bi-credit-card', desc: 'Visa, Mastercard accepted' },
+                  { value: 'cod', label: 'Cash on Delivery', icon: 'bi-cash-stack', desc: 'Pay when you receive your order' },
+                  { value: 'bank', label: 'Bank Transfer', icon: 'bi-bank', desc: 'Direct bank transfer' },
                 ].map(opt => (
                   <div key={opt.value}
                     onClick={() => handleChange('payment_method', opt.value)}
@@ -282,7 +332,7 @@ export default function CheckoutPage() {
                       background: form.payment_method === opt.value ? 'var(--primary-xlight)' : 'var(--white)',
                       cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '1rem', transition: 'all 0.2s',
                     }}>
-                    <span style={{ fontSize: '1.5rem' }}>{opt.icon}</span>
+                    <i className={`bi ${opt.icon}`} style={{ fontSize: '1.4rem', color: form.payment_method === opt.value ? 'var(--primary)' : 'var(--text-muted)', flexShrink: 0 }}></i>
                     <div>
                       <div style={{ fontWeight: 800, fontSize: '0.9rem', color: form.payment_method === opt.value ? 'var(--primary)' : 'var(--text)' }}>{opt.label}</div>
                       <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{opt.desc}</div>
@@ -294,7 +344,9 @@ export default function CheckoutPage() {
                         background: form.payment_method === opt.value ? 'var(--primary)' : 'transparent',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
                       }}>
-                        {form.payment_method === opt.value && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff' }}></div>}
+                        {form.payment_method === opt.value && (
+                          <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#fff' }}></div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -316,10 +368,11 @@ export default function CheckoutPage() {
           {step === 2 && (
             <div>
               <div style={{ background: 'var(--white)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius)', padding: '1.25rem', marginBottom: '1rem' }}>
-                <h5 style={{ fontWeight: 800, marginBottom: '1rem' }}>🛍️ Order Items</h5>
+                <h5 style={{ fontWeight: 800, marginBottom: '1rem' }}>Order Items</h5>
                 {cart.items.map(item => (
                   <div key={item.id} style={{ display: 'flex', gap: '0.75rem', marginBottom: '0.75rem', paddingBottom: '0.75rem', borderBottom: '1px solid var(--border)' }}>
-                    <img src={item.product?.main_image || '/placeholder.jpg'} alt="" style={{ width: 56, height: 56, borderRadius: 8, objectFit: 'cover' }} />
+                    <img src={item.product?.main_image || '/placeholder.jpg'} alt=""
+                      style={{ width: 56, height: 56, borderRadius: 8, objectFit: 'cover' }} />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontWeight: 700, fontSize: '0.875rem' }}>{item.product?.name}</div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Qty: {item.quantity}</div>
@@ -330,15 +383,22 @@ export default function CheckoutPage() {
               </div>
 
               <div style={{ background: 'var(--white)', border: '1.5px solid var(--border)', borderRadius: 'var(--radius)', padding: '1.25rem', marginBottom: '1rem' }}>
-                <h5 style={{ fontWeight: 800, marginBottom: '1rem' }}>📋 Order Details</h5>
+                <h5 style={{ fontWeight: 800, marginBottom: '1rem' }}>Order Details</h5>
                 <table style={{ width: '100%', fontSize: '0.875rem' }}>
                   <tbody>
                     {[
                       ['Customer', form.customer_name],
                       ['Phone', form.customer_phone],
                       ['Email', form.customer_email],
-                      ['Delivery Method', form.delivery_method === 'pickup' ? 'Pickup Station' : 'Door Delivery'],
+                      ['Delivery', form.delivery_method === 'pickup' ? 'Pickup Station' : 'Door Delivery'],
                       ['Payment', form.payment_method.toUpperCase()],
+                      ...(form.delivery_method === 'pickup' && form.pickup_station_id ? [
+                        ['Station', stations.find(s => s.id === form.pickup_station_id)?.name || '—']
+                      ] : []),
+                      ...(form.delivery_method === 'delivery' && form.delivery_county_id ? [
+                        ['County', counties.find(c => c.id === form.delivery_county_id)?.name || '—'],
+                        ['Address', [form.delivery_street, form.delivery_town].filter(Boolean).join(', ') || '—'],
+                      ] : []),
                     ].map(([k, v]) => (
                       <tr key={k}>
                         <td style={{ padding: '6px 0', color: 'var(--text-muted)', width: '40%' }}>{k}</td>
@@ -355,7 +415,9 @@ export default function CheckoutPage() {
                 </button>
                 <button className="btn-gs-primary" onClick={placeOrder} disabled={loading}
                   style={{ flex: 1, justifyContent: 'center', padding: '12px', fontSize: '1rem' }}>
-                  {loading ? <><i className="bi bi-hourglass"></i> Placing Order...</> : <><i className="bi bi-check-circle"></i> Place Order — {formatPrice(total)}</>}
+                  {loading
+                    ? <><i className="bi bi-hourglass-split"></i> Placing Order...</>
+                    : <><i className="bi bi-check-circle"></i> Place Order — {formatPrice(total)}</>}
                 </button>
               </div>
             </div>
@@ -385,7 +447,7 @@ export default function CheckoutPage() {
             </div>
             {couponDiscount > 0 && (
               <div className="gs-summary-row" style={{ color: 'var(--success)' }}>
-                <span>Coupon Discount</span><span>− {formatPrice(couponDiscount)}</span>
+                <span>Discount</span><span>− {formatPrice(couponDiscount)}</span>
               </div>
             )}
             <div className="gs-summary-row total">
@@ -401,7 +463,7 @@ export default function CheckoutPage() {
                   style={{ flex: 1, fontSize: '0.82rem' }} />
                 <button className="btn-gs-outline" onClick={applyCoupon} disabled={couponLoading}
                   style={{ padding: '8px 12px', fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
-                  Apply
+                  {couponLoading ? <i className="bi bi-hourglass-split"></i> : 'Apply'}
                 </button>
               </div>
             </div>
