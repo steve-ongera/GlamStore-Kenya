@@ -1,13 +1,13 @@
-# 💄 GlamStore Kenya – Full Stack E-Commerce
+#  GlamStore Kenya – Full Stack E-Commerce
 
 Kenya's #1 beauty & fashion e-commerce platform.
 **Perfumes · Human Hair · Waxing · Microblading · Stick-ons · Women/Men/Girls Fashion**
 
 ---
 
-## 🗂️ Project Structure
+##  Project Structure
 
-# 💄 GlamStore Kenya — Full Project Structure
+#  GlamStore Kenya — Full Project Structure
 
 ```
 glamstore/
@@ -219,7 +219,7 @@ glamstore/
 
 ---
 
-## 🚀 Quick Start
+##  Quick Start
 
 ```bash
 # ── BACKEND ──────────────────────────────────────────
@@ -268,7 +268,7 @@ glamstore/
 
 ---
 
-## ⚙️ Backend Setup (Django)
+##  Backend Setup (Django)
 
 ```bash
 cd backend
@@ -329,7 +329,7 @@ python manage.py runserver
 
 ---
 
-## 🎨 Frontend Setup (React + Vite)
+##  Frontend Setup (React + Vite)
 
 ```bash
 cd frontend
@@ -353,68 +353,68 @@ npm run build
 
 ---
 
-## 🌟 Features
+##  Features
 
 ### Products
-- ✅ Main categories: Perfumes, Hair, Beauty, Clothing
-- ✅ Sub-categories: Girls/Boys/Boss/Babies perfumes, Waxing, Microblading, Stick-ons, Women's/Men's/Girls' fashion
-- ✅ Product variants (size, color, scent, volume, length)
-- ✅ Image gallery with thumbnails
-- ✅ Star ratings & reviews
-- ✅ Wishlist / heart button
-- ✅ Quick add to cart on hover
-- ✅ Low stock alerts
-- ✅ New arrival / best seller / featured badges
-- ✅ Discount percentage display
-- ✅ SEO slugs for all products and categories
+-  Main categories: Perfumes, Hair, Beauty, Clothing
+-  Sub-categories: Girls/Boys/Boss/Babies perfumes, Waxing, Microblading, Stick-ons, Women's/Men's/Girls' fashion
+-  Product variants (size, color, scent, volume, length)
+-  Image gallery with thumbnails
+-  Star ratings & reviews
+-  Wishlist / heart button
+-  Quick add to cart on hover
+-  Low stock alerts
+-  New arrival / best seller / featured badges
+-  Discount percentage display
+-  SEO slugs for all products and categories
 
 ### Shopping Experience
-- ✅ Flash sale countdown timer
-- ✅ Hero slider with auto-advance
-- ✅ Responsive product grid (2 cols mobile → 5 cols desktop)
-- ✅ Filter by price, gender, availability
-- ✅ Search with query parameters
-- ✅ Sort by price, newest, name
-- ✅ Load more pagination
+-  Flash sale countdown timer
+-  Hero slider with auto-advance
+-  Responsive product grid (2 cols mobile → 5 cols desktop)
+-  Filter by price, gender, availability
+-  Search with query parameters
+-  Sort by price, newest, name
+-  Load more pagination
 
 ### Cart & Checkout
-- ✅ Persistent cart (session-based for guests)
-- ✅ Coupon code validation
-- ✅ 3-step checkout (Delivery → Payment → Review)
-- ✅ Pickup station selector (per county, variable fees)
-- ✅ Door delivery with county-based pricing
-- ✅ M-Pesa, card, COD, bank transfer
+-  Persistent cart (session-based for guests)
+-  Coupon code validation
+-  3-step checkout (Delivery → Payment → Review)
+-  Pickup station selector (per county, variable fees)
+-  Door delivery with county-based pricing
+-  M-Pesa, card, COD, bank transfer
 
 ### User Account
-- ✅ Email + password authentication
-- ✅ JWT with auto token refresh
-- ✅ Order history with expandable details
-- ✅ Profile editing
-- ✅ Password change
+-  Email + password authentication
+-  JWT with auto token refresh
+-  Order history with expandable details
+-  Profile editing
+-  Password change
 
 ### Design & UX
-- ✅ Girly pink + purple gradient theme
-- ✅ Playfair Display + Nunito typography
-- ✅ Drawable sidebar on mobile screens
-- ✅ Mobile bottom navigation bar
-- ✅ Category nav bar (horizontal scroll)
-- ✅ Topbar announcement marquee
-- ✅ Toast notifications
-- ✅ Loading skeletons
-- ✅ Empty states
-- ✅ 404 page
+-  Girly pink + purple gradient theme
+-  Playfair Display + Nunito typography
+-  Drawable sidebar on mobile screens
+-  Mobile bottom navigation bar
+-  Category nav bar (horizontal scroll)
+-  Topbar announcement marquee
+-  Toast notifications
+-  Loading skeletons
+-  Empty states
+-  404 page
 
 ### Kenya-Specific
-- ✅ All 47 counties seeded
-- ✅ Per-county delivery fees (Ksh 100–600)
-- ✅ Per-station pickup fees (Ksh 50–150)
-- ✅ M-Pesa as primary payment option
-- ✅ Ksh currency formatting
-- ✅ Africa/Nairobi timezone
+-  All 47 counties seeded
+-  Per-county delivery fees (Ksh 100–600)
+-  Per-station pickup fees (Ksh 50–150)
+-  M-Pesa as primary payment option
+-  Ksh currency formatting
+-  Africa/Nairobi timezone
 
 ---
 
-## 🚀 Production Deployment
+##  Production Deployment
 
 ### Backend
 1. Set `DEBUG=False` in `.env`
@@ -430,7 +430,7 @@ npm run build
 
 ---
 
-## 🎨 Theme Customization
+##  Theme Customization
 
 Edit `frontend/styles/main.css` CSS variables:
 
@@ -446,4 +446,4 @@ Edit `frontend/styles/main.css` CSS variables:
 
 ---
 
-Built with ❤️ for Kenya's beauty queens and kings 👑
+Built with Steve Ongera Phd for Kenya's beauty queens and kings 
